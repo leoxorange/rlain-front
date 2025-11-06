@@ -160,7 +160,7 @@
       "enableLoggingDesc": "记录服务器活动和错误"
     },
     "about": {
-      "version": "版本",
+      "version": "Web版本",
       "description": "连接本地曲库与各大流媒体，统一搜索、组织与播放。在家中的每个房间，都能获得一致而出色的聆听体验。",
       "systemInfo": "系统信息",
       "serverVersion": "服务器版本",
@@ -191,7 +191,15 @@
     "selectLibrary": "选择音乐库",
     "yourLibraries": "您的音乐库",
     "noLibraries": "暂无音乐库",
-    "createNew": "创建新音乐库"
+    "createNew": "创建新音乐库",
+    "tracks": "首歌曲",
+    "noSongsFound": "此专辑中未找到歌曲",
+    "playSong": "播放歌曲",
+    "totalDuration": "总时长",
+    "playAlbum": "播放专辑",
+    "editAlbum": "编辑专辑",
+    "deleteAlbum": "删除专辑",
+    "confirmDeleteAlbum": "您确定要删除此专辑吗？此操作无法撤销。"
   },
   "common": {
     "close": "关闭",

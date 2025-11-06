@@ -4,58 +4,60 @@ import { get } from '../utils/net'
 import clsx from 'clsx'
 import { Logo } from '../components/Logo'
 import { useAuth } from '../context/AuthContext'
+import { useApp } from '../context/AppContext'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { SettingsMenu } from '../components/SettingsMenu'
 import { LibrarySwitcher } from '../components/LibrarySwitcher'
+import { AlbumModal } from '../components/AlbumModal'
+import { NowPlayingBar } from '../components/NowPlayingBar'
+import { FullscreenPlayer } from '../components/FullscreenPlayer'
+import { artworkToDataUrl } from '../utils/kit'
 
-interface Album {
-    id: string
-    title: string
-    artist: string
-    coverUrl?: string
-    year?: number
-    tracks?: number
-}
+
 
 export default function Library() {
     const { t } = useTranslation()
-    const { user } = useAuth()
+
+    const { libraries, currentLibraryId, setCurrentLibraryId, isFullscreenPlayerOpen, setIsFullscreenPlayerOpen } = useApp()
     const [albums, setAlbums] = useState<Album[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
-    const [currentLibraryId, setCurrentLibraryId] = useState<string>('1')
+
+    // Auto-select first library on mount
+    useEffect(() => {
+        if (libraries.length > 0 && currentLibraryId === null) {
+            setCurrentLibraryId(libraries[0].id)
+        }
+    }, [libraries, currentLibraryId, setCurrentLibraryId])
 
     useEffect(() => {
-        loadAlbums()
+        if (currentLibraryId !== null) {
+            loadAlbums()
+        }
     }, [currentLibraryId])
 
     const loadAlbums = async () => {
+        //no library select, no result returned.
+        if (currentLibraryId === null) return;
         try {
-            // TODO: Replace with actual API endpoint that uses currentLibraryId
-            const data = await get<Album[]>(`/albums?libraryId=${currentLibraryId}`)
+            const data = await get<Album[]>(`/albums?library_id=${currentLibraryId}`)
             setAlbums(data)
         } catch (err) {
             console.error('Failed to load albums:', err)
-            // Mock data for now
-            setAlbums([
-                { id: '1', title: 'Abbey Road', artist: 'The Beatles', year: 1969, tracks: 17 },
-                { id: '2', title: 'Dark Side of the Moon', artist: 'Pink Floyd', year: 1973, tracks: 10 },
-                { id: '3', title: 'Thriller', artist: 'Michael Jackson', year: 1982, tracks: 9 },
-            ])
         } finally {
             setIsLoading(false)
         }
     }
 
     const handleLibraryChange = (libraryId: string) => {
-        setCurrentLibraryId(libraryId)
+        setCurrentLibraryId(Number(libraryId))
         setIsLoading(true)
     }
 
     const filteredAlbums = albums.filter(album =>
-        album.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        album.artist.toLowerCase().includes(searchQuery.toLowerCase())
+        album.album_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        album.album_artist.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
     return (
@@ -63,7 +65,7 @@ export default function Library() {
             {/* Sidebar */}
             <aside className="fixed left-0 top-0 h-full w-64 border-r border-[var(--border)] bg-[var(--card)] p-6">
                 <div className="mb-8">
-                    <Logo className='text-3xl'/>
+                    <Logo className='text-3xl' />
                 </div>
 
                 <nav className="space-y-2">
@@ -96,15 +98,6 @@ export default function Library() {
                         {t('library.genres')}
                     </a>
                 </nav>
-
-                <div className="absolute bottom-6 left-6 right-6 space-y-3">
-                    {/* User Info */}
-                    <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-alt)] p-4">
-                        <p className="text-xs text-[var(--muted)]">{t('library.currentUser')}</p>
-                        <p className="mt-1 text-sm font-medium text-[var(--text)] truncate">{user?.nickname || user?.username}</p>
-                        <p className="text-xs text-[var(--muted)] truncate">{user?.email}</p>
-                    </div>
-                </div>
             </aside>
 
             {/* Main Content */}
@@ -115,7 +108,7 @@ export default function Library() {
                         <div className="flex items-center gap-3">
                             <h2 className="text-4xl font-bold text-[var(--text)]">{t('library.title')}</h2>
                             <LibrarySwitcher
-                                currentLibraryId={currentLibraryId}
+                                currentLibraryId={currentLibraryId !== null ? String(currentLibraryId) : undefined}
                                 onLibraryChange={handleLibraryChange}
                             />
                         </div>
@@ -159,20 +152,20 @@ export default function Library() {
                         <div className="text-[var(--muted)]">{t('library.loading')}</div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                        {filteredAlbums.map((album) => (
+                    <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8">
+                        {filteredAlbums.map((album, index) => (
                             <div
-                                key={album.id}
+                                key={index}
                                 onClick={() => setSelectedAlbum(album)}
                                 className={clsx(
                                     "group cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-all hover:scale-105 hover:shadow-xl",
-                                    selectedAlbum?.id === album.id && "ring-2 ring-[var(--primary)]"
+                                    selectedAlbum?.album_name === album.album_name && "ring-2 ring-[var(--primary)]"
                                 )}
                             >
                                 {/* Album Cover */}
                                 <div className="mb-4 aspect-square w-full overflow-hidden rounded-lg bg-gradient-to-br from-[var(--primary)] to-[var(--accent)]">
-                                    {album.coverUrl ? (
-                                        <img src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
+                                    {album.artwork ? (
+                                        <img src={artworkToDataUrl(album.artwork)} alt={album.album_name} className="h-full w-full object-cover" />
                                     ) : (
                                         <div className="flex h-full items-center justify-center">
                                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5">
@@ -185,9 +178,9 @@ export default function Library() {
 
                                 {/* Album Info */}
                                 <h3 className="mb-1 truncate text-sm font-semibold text-[var(--text)] group-hover:text-[var(--primary)]">
-                                    {album.title}
+                                    {album.album_name}
                                 </h3>
-                                <p className="truncate text-xs text-[var(--muted)]">{album.artist}</p>
+                                <p className="truncate text-xs text-[var(--muted)]">{album.album_artist}</p>
                                 {album.year && (
                                     <p className="mt-1 text-xs text-[var(--muted)]">{album.year}</p>
                                 )}
@@ -213,48 +206,22 @@ export default function Library() {
                 )}
             </main>
 
+            {/* Album Modal */}
+            {selectedAlbum && (
+                <AlbumModal
+                    album={selectedAlbum}
+                    onClose={() => setSelectedAlbum(null)}
+                />
+            )}
+
             {/* Now Playing Bar */}
-            <div className="fixed bottom-0 left-64 right-0 border-t border-[var(--border)] bg-[var(--card)] px-8 py-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded bg-gradient-to-br from-[var(--primary)] to-[var(--accent)]"></div>
-                        <div>
-                            <p className="text-sm font-medium text-[var(--text)]">-</p>
-                            <p className="text-xs text-[var(--muted)]">-</p>
-                        </div>
-                    </div>
+            <NowPlayingBar />
 
-                    <div className="flex items-center gap-4">
-                        <button className="rounded-full p-2 text-[var(--muted)] hover:bg-[var(--overlay)] hover:text-[var(--text)]">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="19 20 9 12 19 4 19 20"></polygon>
-                                <line x1="5" y1="19" x2="5" y2="5"></line>
-                            </svg>
-                        </button>
-                        <button className="rounded-full bg-[var(--primary)] p-3 text-white hover:opacity-90">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                            </svg>
-                        </button>
-                        <button className="rounded-full p-2 text-[var(--muted)] hover:bg-[var(--overlay)] hover:text-[var(--text)]">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="5 4 15 12 5 20 5 4"></polygon>
-                                <line x1="19" y1="5" x2="19" y2="19"></line>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--muted)]">
-                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                        </svg>
-                        <div className="h-1 w-24 rounded-full bg-[var(--border)]">
-                            <div className="h-full w-3/4 rounded-full bg-[var(--primary)]"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {/* Fullscreen Player */}
+            <FullscreenPlayer
+                isOpen={isFullscreenPlayerOpen}
+                onClose={() => setIsFullscreenPlayerOpen(false)}
+            />
         </div>
     )
 }

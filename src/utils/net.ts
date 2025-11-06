@@ -6,7 +6,7 @@ const url = typeof window !== 'undefined' ? "http://" + window.location.hostname
 type Method = "get" | "post" | "put" | "delete"
 
 // Helper to get auth headers
-const getAuthHeaders = (): Record<string, string> => {
+export const getAuthHeaders = (): Record<string, string> => {
     const token = getToken()
     return token ? { Authorization: `Bearer ${token}` } : {}
 }
@@ -60,10 +60,20 @@ const del = async <D>(resource: string, data?: Record<string, any>) => {
     });
 }
 
+const getBlob = async (resource: string) => {
+    return await ofetch(resource, {
+        method: "GET",
+        baseURL: url,
+        headers: getAuthHeaders(),
+        responseType: 'blob' as any
+    }) as Blob;
+}
+
 export {
     req,
     get,
     post,
     put,
-    del
+    del,
+    getBlob
 };

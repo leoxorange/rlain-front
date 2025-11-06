@@ -6,9 +6,7 @@ import { Input } from '../form/Input'
 export const ServerSettingsTab = () => {
     const { t } = useTranslation()
 
-    const [serverPort, setServerPort] = useState('8096')
-    const [maxConnections, setMaxConnections] = useState('10')
-    const [enableHttps, setEnableHttps] = useState(false)
+    const [serverPort] = useState('8096')
     const [enableLogging, setEnableLogging] = useState(true)
 
     return (
@@ -21,20 +19,7 @@ export const ServerSettingsTab = () => {
                         description={t('settings.server.portDesc')}
                         type="number"
                         value={serverPort}
-                        onChange={setServerPort}
-                    />
-                    <Input
-                        label={t('settings.server.maxConnections')}
-                        description={t('settings.server.maxConnectionsDesc')}
-                        type="number"
-                        value={maxConnections}
-                        onChange={setMaxConnections}
-                    />
-                    <Toggle
-                        label={t('settings.server.enableHttps')}
-                        description={t('settings.server.enableHttpsDesc')}
-                        checked={enableHttps}
-                        onChange={setEnableHttps}
+                        disabled
                     />
                 </div>
             </div>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useApp } from '../../context/AppContext'
 import { Toggle } from '../form/Toggle'
 import { Input } from '../form/Input'
+import { PathBrowser } from '../PathBrowser'
 import { post, put, del } from '../../utils/net'
 
 export const LibrarySettingsTab = () => {
@@ -16,6 +17,28 @@ export const LibrarySettingsTab = () => {
     const [newLibraryPath, setNewLibraryPath] = useState('')
     const [newLibraryIsPublic, setNewLibraryIsPublic] = useState(false)
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null)
+
+    // Path browser state
+    const [showPathBrowser, setShowPathBrowser] = useState(false)
+    const [pathBrowserMode, setPathBrowserMode] = useState<'create' | 'edit'>('create')
+    const [pathBrowserInitialPath, setPathBrowserInitialPath] = useState('')
+
+    // Scan state
+    const [scanningLibraryId, setScanningLibraryId] = useState<number | null>(null)
+
+    const handleOpenPathBrowser = (mode: 'create' | 'edit', currentPath?: string) => {
+        setPathBrowserMode(mode)
+        setPathBrowserInitialPath(currentPath || '')
+        setShowPathBrowser(true)
+    }
+
+    const handlePathSelect = (path: string) => {
+        if (pathBrowserMode === 'create') {
+            setNewLibraryPath(path)
+        } else if (editingLibrary) {
+            setEditingLibrary({ ...editingLibrary, path })
+        }
+    }
 
     const handleAddLibrary = async () => {
         if (!newLibraryName.trim() || !newLibraryPath.trim() || !user?.user_id) return
@@ -34,21 +57,6 @@ export const LibrarySettingsTab = () => {
             setIsAddingLibrary(false)
         } catch (err) {
             console.error('Failed to add library:', err)
-            // Mock success for development
-            const mockLibrary: Library = {
-                id: Date.now(),
-                name: newLibraryName,
-                path: newLibraryPath,
-                user_id: user.user_id,
-                is_public: newLibraryIsPublic,
-                created: new Date(),
-                updated: new Date(),
-            }
-            addLibrary(mockLibrary)
-            setNewLibraryName('')
-            setNewLibraryPath('')
-            setNewLibraryIsPublic(false)
-            setIsAddingLibrary(false)
         }
     }
 
@@ -59,9 +67,6 @@ export const LibrarySettingsTab = () => {
             setEditingLibrary(null)
         } catch (err) {
             console.error('Failed to update library:', err)
-            // Mock success for development
-            updateLibrary(library)
-            setEditingLibrary(null)
         }
     }
 
@@ -72,9 +77,19 @@ export const LibrarySettingsTab = () => {
             setDeleteConfirmId(null)
         } catch (err) {
             console.error('Failed to delete library:', err)
-            // Mock success for development
-            removeLibrary(id)
-            setDeleteConfirmId(null)
+        }
+    }
+
+    const handleScanLibrary = async (id: number) => {
+        setScanningLibraryId(id)
+        try {
+            await post(`/libraries/${id}/scan`, {})
+            // Optionally show a success message
+            console.log('Library scan started successfully')
+        } catch (err) {
+            console.error('Failed to start library scan:', err)
+        } finally {
+            setScanningLibraryId(null)
         }
     }
 
@@ -106,13 +121,31 @@ export const LibrarySettingsTab = () => {
                             placeholder={t('settings.library.libraryNamePlaceholder')}
                             required
                         />
-                        <Input
-                            label={t('settings.library.libraryPath')}
-                            value={newLibraryPath}
-                            onChange={setNewLibraryPath}
-                            placeholder={t('settings.library.libraryPathPlaceholder')}
-                            required
-                        />
+                        <div>
+                            <label className="block text-sm font-medium text-[var(--text)] mb-1.5">
+                                {t('settings.library.libraryPath')}
+                                <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newLibraryPath}
+                                    onChange={(e) => setNewLibraryPath(e.target.value)}
+                                    placeholder={t('settings.library.libraryPathPlaceholder')}
+                                    className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => handleOpenPathBrowser('create', newLibraryPath)}
+                                    className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--overlay)] transition-colors"
+                                    title="Browse directories"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                         <Toggle
                             label={t('settings.library.isPublic')}
                             description={t('settings.library.isPublicDesc')}
@@ -167,11 +200,29 @@ export const LibrarySettingsTab = () => {
                                             value={editingLibrary.name}
                                             onChange={(value) => setEditingLibrary({ ...editingLibrary, name: value })}
                                         />
-                                        <Input
-                                            label={t('settings.library.libraryPath')}
-                                            value={String(editingLibrary.path)}
-                                            onChange={(value) => setEditingLibrary({ ...editingLibrary, path: value })}
-                                        />
+                                        <div>
+                                            <label className="block text-sm font-medium text-[var(--text)] mb-1.5">
+                                                {t('settings.library.libraryPath')}
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={String(editingLibrary.path)}
+                                                    onChange={(e) => setEditingLibrary({ ...editingLibrary, path: e.target.value })}
+                                                    className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenPathBrowser('edit', String(editingLibrary.path))}
+                                                    className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--overlay)] transition-colors"
+                                                    title="Browse directories"
+                                                >
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
                                         <Toggle
                                             label={t('settings.library.isPublic')}
                                             description={t('settings.library.isPublicDesc')}
@@ -243,6 +294,31 @@ export const LibrarySettingsTab = () => {
                                         </div>
                                         <div className="flex gap-2 ml-4">
                                             <button
+                                                onClick={() => handleScanLibrary(library.id)}
+                                                disabled={scanningLibraryId === library.id}
+                                                className="rounded-lg p-2 text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                title="Scan library"
+                                            >
+                                                {scanningLibraryId === library.id ? (
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                                                        <line x1="12" y1="2" x2="12" y2="6"></line>
+                                                        <line x1="12" y1="18" x2="12" y2="22"></line>
+                                                        <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                                                        <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                                                        <line x1="2" y1="12" x2="6" y2="12"></line>
+                                                        <line x1="18" y1="12" x2="22" y2="12"></line>
+                                                        <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                                                        <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                                    </svg>
+                                                ) : (
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                                        <polyline points="1 20 1 14 7 14"></polyline>
+                                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                                    </svg>
+                                                )}
+                                            </button>
+                                            <button
                                                 onClick={() => setEditingLibrary(library)}
                                                 className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--overlay)] hover:text-[var(--text)] transition-colors"
                                                 title={t('settings.library.editLibrary')}
@@ -272,6 +348,15 @@ export const LibrarySettingsTab = () => {
                     )}
                 </div>
             </div>
+
+            {/* Path Browser Modal */}
+            {showPathBrowser && (
+                <PathBrowser
+                    initialPath={pathBrowserInitialPath}
+                    onSelect={handlePathSelect}
+                    onClose={() => setShowPathBrowser(false)}
+                />
+            )}
         </div>
     )
 }

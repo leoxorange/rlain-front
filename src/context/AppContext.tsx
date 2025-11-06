@@ -18,6 +18,18 @@ interface AppContextType {
     addLibrary: (library: Library) => void
     updateLibrary: (library: Library) => void
     removeLibrary: (id: number) => void
+
+    // Player state
+    currentSong: Song | null
+    isPlaying: boolean
+    currentAlbum: Album | null
+    isFullscreenPlayerOpen: boolean
+
+    // Player actions
+    setCurrentSong: (song: Song | null) => void
+    setIsPlaying: (playing: boolean) => void
+    setCurrentAlbum: (album: Album | null) => void
+    setIsFullscreenPlayerOpen: (open: boolean) => void
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -33,6 +45,12 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     const [libraries, setLibraries] = useState<Library[]>([])
     const [currentLibraryId, setCurrentLibraryId] = useState<number | null>(null)
     const [isLoadingLibraries, setIsLoadingLibraries] = useState(false)
+
+    // Player state
+    const [currentSong, setCurrentSong] = useState<Song | null>(null)
+    const [isPlaying, setIsPlaying] = useState(false)
+    const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null)
+    const [isFullscreenPlayerOpen, setIsFullscreenPlayerOpen] = useState(false)
 
     // Load libraries when user is available
     useEffect(() => {
@@ -60,27 +78,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
             setLibraries(data)
         } catch (err) {
             console.error('Failed to load libraries:', err)
-            // Mock data for development
-            setLibraries([
-                {
-                    id: 1,
-                    name: 'My Music',
-                    path: '/music/personal',
-                    user_id: user.user_id,
-                    is_public: false,
-                    created: new Date(),
-                    updated: new Date()
-                },
-                {
-                    id: 2,
-                    name: 'Family Library',
-                    path: '/music/family',
-                    user_id: user.user_id,
-                    is_public: true,
-                    created: new Date(),
-                    updated: new Date()
-                },
-            ])
         } finally {
             setIsLoadingLibraries(false)
         }
@@ -123,6 +120,14 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         addLibrary,
         updateLibrary,
         removeLibrary,
+        currentSong,
+        isPlaying,
+        currentAlbum,
+        isFullscreenPlayerOpen,
+        setCurrentSong,
+        setIsPlaying,
+        setCurrentAlbum,
+        setIsFullscreenPlayerOpen,
     }
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>

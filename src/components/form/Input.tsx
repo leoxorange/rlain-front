@@ -2,7 +2,7 @@ interface InputProps {
     label: string
     description?: string
     value: string
-    onChange: (value: string) => void
+    onChange?: (value: string) => void
     type?: 'text' | 'email' | 'password' | 'number'
     placeholder?: string
     disabled?: boolean
@@ -31,7 +31,7 @@ export const Input = ({
             <input
                 type={type}
                 value={value}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={(e) => onChange && onChange(e.target.value)}
                 placeholder={placeholder}
                 disabled={disabled}
                 required={required}
