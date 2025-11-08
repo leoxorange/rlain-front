@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
-import { getUserInfo, saveAuth, clearAuth, isAuthenticated, type AuthResponse, type UserInfo } from '../utils/auth'
+import { getUserInfo, saveAuth, clearAuth, isAuthenticated } from '../utils/auth'
 
 interface AuthContextType {
     user: UserInfo | null
@@ -23,7 +23,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             user_id: authResponse.user_id,
             username: authResponse.username,
             email: authResponse.email,
-            nickname: authResponse.nickname
+            nickname: authResponse.nickname,
+            preferences: authResponse.preferences
         })
         setIsAuth(true)
     }

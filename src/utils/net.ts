@@ -69,6 +69,13 @@ const getBlob = async (resource: string) => {
     }) as Blob;
 }
 
+export const updateUserPreferences = async (
+    userId: number,
+    preferences: UserPreferences
+): Promise<void> => {
+    await put(`/users/${userId}/update_pref`, preferences)
+}
+
 export {
     req,
     get,

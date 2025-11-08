@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { post } from '../utils/net'
 import { Logo } from './Logo'
 import { useAuth } from '../context/AuthContext'
-import type { AuthResponse } from '../utils/auth'
 
 interface CreateUserModalProps {
     isOpen: boolean

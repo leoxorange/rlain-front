@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { get } from '../utils/net'
 import clsx from 'clsx'
 import { Logo } from '../components/Logo'
-import { useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { SettingsMenu } from '../components/SettingsMenu'
@@ -101,7 +100,7 @@ export default function Library() {
             </aside>
 
             {/* Main Content */}
-            <main className="ml-64 p-8">
+            <main className="ml-64 p-8 pb-32">
                 {/* Header */}
                 <div className="mb-8">
                     <div className="mb-4 flex items-center justify-between">

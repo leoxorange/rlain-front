@@ -1,8 +1,18 @@
+interface UserPreferences {
+    volume?: number
+    tc_enable?: boolean
+    tc_target?: string
+    tc_bitrate?: number
+    theme?: string
+    notification?: boolean
+}
+
 interface User {
     id: number
     username: string
     email: string
     nickname: string
+    preferences?: UserPreferences
     created: Date
     updated: Date
 }
@@ -48,4 +58,21 @@ interface Album {
 interface DirectoryInfo {
     base_path: string
     directories: string[]
+}
+
+interface AuthResponse {
+    token: string
+    user_id: number
+    username: string
+    email: string
+    nickname: string
+    preferences?: UserPreferences
+}
+
+interface UserInfo {
+    user_id: number
+    username: string
+    email: string
+    nickname: string
+    preferences?: UserPreferences
 }

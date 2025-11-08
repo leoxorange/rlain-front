@@ -15,7 +15,7 @@ interface AlbumDetails {
 
 export const AlbumModal = ({ album, onClose }: AlbumModalProps) => {
     const { t } = useTranslation()
-    const { setCurrentSong, setIsPlaying, setCurrentAlbum } = useApp()
+    const { playAlbum, playSong } = useApp()
     const [songs, setSongs] = useState<Song[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isDeleting, setIsDeleting] = useState(false)
@@ -42,16 +42,12 @@ export const AlbumModal = ({ album, onClose }: AlbumModalProps) => {
 
     const handlePlayAlbum = () => {
         if (songs.length > 0) {
-            setCurrentSong(songs[0])
-            setCurrentAlbum(album)
-            setIsPlaying(true)
+            playAlbum(songs, album)
         }
     }
 
     const handlePlaySong = (song: Song) => {
-        setCurrentSong(song)
-        setCurrentAlbum(album)
-        setIsPlaying(true)
+        playSong(song, album)
     }
 
     const handleEditAlbum = () => {

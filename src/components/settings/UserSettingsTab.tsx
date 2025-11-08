@@ -1,17 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
+import { useApp } from '../../context/AppContext'
 import { Toggle } from '../form/Toggle'
 import { Input } from '../form/Input'
 
 export const UserSettingsTab = () => {
     const { t } = useTranslation()
     const { user } = useAuth()
+    const { preferences, updatePreferences } = useApp()
 
     const [displayName, setDisplayName] = useState(user?.nickname || '')
     const [email, setEmail] = useState(user?.email || '')
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+    const [notificationsEnabled, setNotificationsEnabled] = useState(preferences?.notification ?? false)
     const [emailNotifications, setEmailNotifications] = useState(false)
+
+    // Sync notification setting with preferences
+    useEffect(() => {
+        if (preferences) {
+            setNotificationsEnabled(preferences.notification || false)
+        }
+    }, [preferences])
+
+    const handleNotificationsChange = (enabled: boolean) => {
+        setNotificationsEnabled(enabled)
+        updatePreferences({ notification: enabled })
+    }
 
     return (
         <div className="space-y-6 max-w-2xl">
@@ -41,7 +55,7 @@ export const UserSettingsTab = () => {
                         label={t('settings.user.enableNotifications')}
                         description={t('settings.user.enableNotificationsDesc')}
                         checked={notificationsEnabled}
-                        onChange={setNotificationsEnabled}
+                        onChange={handleNotificationsChange}
                     />
                     <Toggle
                         label={t('settings.user.emailNotifications')}

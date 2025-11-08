@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import { formatTime, artworkToDataUrl } from '../utils/kit'
 import { gsap } from 'gsap'
 
@@ -10,10 +9,29 @@ interface FullscreenPlayerProps {
 }
 
 export const FullscreenPlayer = ({ isOpen, onClose }: FullscreenPlayerProps) => {
-    const { currentSong, isPlaying, currentAlbum } = useApp()
-    const { togglePlayPause, currentTime, duration, volume, changeVolume, seek } = useAudioPlayer()
+    const {
+        currentSong,
+        isPlaying,
+        currentAlbum,
+        togglePlayPause,
+        currentTime,
+        duration,
+        volume,
+        changeVolume,
+        seek,
+        playNext,
+        playPrevious,
+        queue,
+        currentQueueIndex,
+        playQueueIndex,
+        clearQueue,
+        playMode,
+        togglePlayMode
+    } = useApp()
     const containerRef = useRef<HTMLDivElement>(null)
     const contentRef = useRef<HTMLDivElement>(null)
+    const queuePanelRef = useRef<HTMLDivElement>(null)
+    const [isQueueOpen, setIsQueueOpen] = useState(false)
 
     // Animate slide up/down when opening/closing
     useEffect(() => {
@@ -44,6 +62,64 @@ export const FullscreenPlayer = ({ isOpen, onClose }: FullscreenPlayerProps) => 
             )
         }
     }, [isOpen])
+
+    // Animate queue panel and shift player content
+    useEffect(() => {
+        if (!contentRef.current || !queuePanelRef.current) return
+
+        if (isQueueOpen) {
+            // Shift content to left
+            gsap.to(contentRef.current, {
+                x: '-25%',
+                duration: 0.4,
+                ease: 'power2.inOut'
+            })
+            // Slide in queue panel from right
+            gsap.fromTo(
+                queuePanelRef.current,
+                { x: '100%', opacity: 0 },
+                {
+                    x: '0%',
+                    opacity: 1,
+                    duration: 0.4,
+                    ease: 'power2.inOut'
+                }
+            )
+        } else {
+            // Reset content position
+            gsap.to(contentRef.current, {
+                x: '0%',
+                duration: 0.4,
+                ease: 'power2.inOut'
+            })
+            // Slide out queue panel
+            if (queuePanelRef.current) {
+                gsap.to(queuePanelRef.current, {
+                    x: '100%',
+                    opacity: 0,
+                    duration: 0.4,
+                    ease: 'power2.inOut'
+                })
+            }
+        }
+    }, [isQueueOpen])
+
+    // Close queue when clicking outside the queue panel
+    useEffect(() => {
+        if (!isQueueOpen) return
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                queuePanelRef.current &&
+                !queuePanelRef.current.contains(event.target as Node)
+            ) {
+                setIsQueueOpen(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [isQueueOpen])
 
     // Handle close with animation
     const handleClose = () => {
@@ -114,6 +190,15 @@ export const FullscreenPlayer = ({ isOpen, onClose }: FullscreenPlayerProps) => 
         changeVolume(percent)
     }
 
+    const handleQueueItemClick = (index: number) => {
+        playQueueIndex(index)
+    }
+
+    const handleClearQueue = () => {
+        clearQueue()
+        setIsQueueOpen(false)
+    }
+
     const artworkUrl = currentSong.artwork ? artworkToDataUrl(currentSong.artwork) : undefined
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
@@ -130,23 +215,71 @@ export const FullscreenPlayer = ({ isOpen, onClose }: FullscreenPlayerProps) => 
                     aria-label="Close fullscreen player"
                 >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
+                        <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
                 <div className="text-sm font-medium text-[var(--text)]">
                     Now Playing
                 </div>
-                <button
-                    className="rounded-full p-2 text-[var(--muted)] hover:bg-[var(--overlay)] hover:text-[var(--text)] transition-colors"
-                    aria-label="More options"
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="1"></circle>
-                        <circle cx="12" cy="5" r="1"></circle>
-                        <circle cx="12" cy="19" r="1"></circle>
-                    </svg>
-                </button>
+                <div className="flex items-center gap-2">
+                    {/* Play Mode Button */}
+                    <button
+                        onClick={togglePlayMode}
+                        className="rounded-full p-2 text-[var(--muted)] hover:bg-[var(--overlay)] hover:text-[var(--text)] transition-colors"
+                        aria-label={`Play mode: ${playMode}`}
+                        title={playMode === 'list' ? 'Sequential' : playMode === 'loop' ? 'Loop Single' : 'Shuffle'}
+                    >
+                        {playMode === 'list' ? (
+                            // List icon (sequential)
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="8" y1="6" x2="21" y2="6"></line>
+                                <line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                            </svg>
+                        ) : playMode === 'loop' ? (
+                            // Loop icon (repeat one)
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="17 1 21 5 17 9"></polyline>
+                                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                                <polyline points="7 23 3 19 7 15"></polyline>
+                                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                                <text x="12" y="15" fontSize="8" fill="currentColor" textAnchor="middle" fontWeight="bold">1</text>
+                            </svg>
+                        ) : (
+                            // Random/Shuffle icon
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="16 3 21 3 21 8"></polyline>
+                                <line x1="4" y1="20" x2="21" y2="3"></line>
+                                <polyline points="21 16 21 21 16 21"></polyline>
+                                <line x1="15" y1="15" x2="21" y2="21"></line>
+                                <line x1="4" y1="4" x2="9" y2="9"></line>
+                            </svg>
+                        )}
+                    </button>
+
+                    {/* Queue Button */}
+                    <button
+                        onClick={() => setIsQueueOpen(!isQueueOpen)}
+                        className={`rounded-full p-2 transition-colors ${
+                            isQueueOpen
+                                ? 'text-[var(--primary)] bg-[var(--primary)]/10'
+                                : 'text-[var(--muted)] hover:bg-[var(--overlay)] hover:text-[var(--text)]'
+                        }`}
+                        aria-label="Toggle queue"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             {/* Main Content */}
@@ -211,8 +344,9 @@ export const FullscreenPlayer = ({ isOpen, onClose }: FullscreenPlayerProps) => 
                 {/* Playback Controls */}
                 <div className="flex items-center justify-center gap-4 sm:gap-6 mb-4 sm:mb-6 flex-shrink-0">
                     <button
-                        onClick={() => console.log('Previous')}
-                        className="rounded-full p-2 text-[var(--text)] hover:bg-[var(--overlay)] transition-colors"
+                        onClick={playPrevious}
+                        disabled={currentQueueIndex <= 0}
+                        className="rounded-full p-2 text-[var(--text)] hover:bg-[var(--overlay)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label="Previous track"
                     >
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
@@ -238,8 +372,9 @@ export const FullscreenPlayer = ({ isOpen, onClose }: FullscreenPlayerProps) => 
                     </button>
 
                     <button
-                        onClick={() => console.log('Next')}
-                        className="rounded-full p-2 text-[var(--text)] hover:bg-[var(--overlay)] transition-colors"
+                        onClick={playNext}
+                        disabled={currentQueueIndex >= queue.length - 1}
+                        className="rounded-full p-2 text-[var(--text)] hover:bg-[var(--overlay)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label="Next track"
                     >
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
@@ -279,6 +414,107 @@ export const FullscreenPlayer = ({ isOpen, onClose }: FullscreenPlayerProps) => 
                     <span className="text-xs sm:text-sm text-[var(--muted)] tabular-nums w-8 sm:w-10 text-right">
                         {Math.round(volume * 100)}%
                     </span>
+                </div>
+            </div>
+
+            {/* Queue Panel */}
+            <div
+                ref={queuePanelRef}
+                className="fixed top-0 right-0 bottom-0 w-1/2 bg-[var(--card)] border-l border-[var(--border)] flex flex-col"
+                style={{ transform: 'translateX(100%)' }}
+            >
+                {/* Queue Header */}
+                <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
+                    <h3 className="text-lg font-semibold text-[var(--text)]">Queue ({queue.length})</h3>
+                    {queue.length > 0 && (
+                        <button
+                            onClick={handleClearQueue}
+                            className="text-sm text-[var(--muted)] hover:text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded transition-colors"
+                            title="Clear queue"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+
+                {/* Queue List */}
+                <div className="flex-1 overflow-y-auto">
+                    {queue.length === 0 ? (
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-4 text-[var(--muted)]">
+                                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                                </svg>
+                                <p className="text-[var(--muted)]">Queue is empty</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-[var(--border)]">
+                            {queue.map((song, index) => {
+                                const isCurrentSong = index === currentQueueIndex
+                                const songArtworkUrl = song.artwork ? artworkToDataUrl(song.artwork) : undefined
+
+                                return (
+                                    <button
+                                        key={`${song.id}-${index}`}
+                                        onClick={() => handleQueueItemClick(index)}
+                                        className={`w-full px-6 py-4 flex items-center gap-4 hover:bg-[var(--overlay)] transition-colors text-left ${
+                                            isCurrentSong ? 'bg-[var(--primary)]/10' : ''
+                                        }`}
+                                    >
+                                        {/* Song Artwork */}
+                                        <div className="w-12 h-12 rounded bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] overflow-hidden flex-shrink-0">
+                                            {songArtworkUrl ? (
+                                                <img
+                                                    src={songArtworkUrl}
+                                                    alt={song.title}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.5">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                                                    </svg>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Song Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-base font-medium truncate ${
+                                                isCurrentSong ? 'text-[var(--primary)]' : 'text-[var(--text)]'
+                                            }`}>
+                                                {song.title}
+                                            </p>
+                                            <p className="text-sm text-[var(--muted)] truncate">
+                                                {song.artist || 'Unknown Artist'}
+                                            </p>
+                                        </div>
+
+                                        {/* Duration */}
+                                        <div className="text-sm text-[var(--muted)] tabular-nums flex-shrink-0">
+                                            {song.duration ? formatTime(song.duration) : '-'}
+                                        </div>
+
+                                        {/* Playing Indicator */}
+                                        {isCurrentSong && (
+                                            <div className="flex-shrink-0">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-[var(--primary)]">
+                                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
 
