@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
-import { getUserInfo, saveAuth, clearAuth, isAuthenticated } from '../utils/auth'
+import { getUserInfo, saveAuth, clearAuth, isAuthenticated, saveUserInfo } from '../utils/auth'
 
 interface AuthContextType {
     user: UserInfo | null
@@ -7,6 +7,7 @@ interface AuthContextType {
     isLoading: boolean
     login: (authResponse: AuthResponse) => void
     logout: () => void
+    updateUser: (updatedUser: Partial<UserInfo>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -35,8 +36,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuth(false)
     }
 
+    const updateUser = (updatedUser: Partial<UserInfo>) => {
+        if (!user) return
+
+        const newUser = {
+            ...user,
+            ...updatedUser
+        }
+
+        setUser(newUser)
+        saveUserInfo(newUser)
+    }
+
     return (
-        <AuthContext.Provider value={{ user, isAuth, isLoading, login, logout }}>
+        <AuthContext.Provider value={{ user, isAuth, isLoading, login, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     )

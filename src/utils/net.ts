@@ -11,21 +11,21 @@ export const getAuthHeaders = (): Record<string, string> => {
     return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-const req = async <D>(method: Method, resource: string, data?: Record<string, any>) => {
+const req = async <R>(method: Method, resource: string, data?: Record<string, any>): Promise<R> => {
     switch(method) {
         case "get":
-            return get<D>(resource, data)
+            return get<R>(resource, data)
         case "post":
-            return post<D>(resource, data)
+            return post<R>(resource, data)
         case "put":
-            return put<D>(resource, data)
+            return put<R>(resource, data)
         case "delete":
-            return del<D>(resource, data)
+            return del<R>(resource, data)
     }
 }
 
-const get = async <D>(resource: string, data?: Record<string, any>) => {
-    return await ofetch<D>(resource, {
+const get = async <R>(resource: string, data?: Record<string, any>): Promise<R> => {
+    return await ofetch<R>(resource, {
         method: "GET",
         baseURL: url,
         query: data,
@@ -33,8 +33,8 @@ const get = async <D>(resource: string, data?: Record<string, any>) => {
     });
 }
 
-const post = async <D>(resource: string, data?: Record<string, any>) => {
-    return await ofetch<D>(resource, {
+async function post<R>(resource: string, data?: Record<string, any>): Promise<R> {
+    return await ofetch<R>(resource, {
         method: "POST",
         baseURL: url,
         body: data,
@@ -42,8 +42,8 @@ const post = async <D>(resource: string, data?: Record<string, any>) => {
     });
 }
 
-const put = async <D>(resource: string, data?: Record<string, any>) => {
-    return await ofetch<D>(resource, {
+async function put<R>(resource: string, data?: Record<string, any>): Promise<R> {
+    return await ofetch<R>(resource, {
         method: "PUT",
         baseURL: url,
         body: data,
@@ -51,8 +51,8 @@ const put = async <D>(resource: string, data?: Record<string, any>) => {
     });
 }
 
-const del = async <D>(resource: string, data?: Record<string, any>) => {
-    return await ofetch<D>(resource, {
+const del = async <R>(resource: string, data?: Record<string, any>): Promise<R> => {
+    return await ofetch<R>(resource, {
         method: "DELETE",
         baseURL: url,
         body: data,
@@ -74,6 +74,13 @@ export const updateUserPreferences = async (
     preferences: UserPreferences
 ): Promise<void> => {
     await put(`/users/${userId}/update_pref`, preferences)
+}
+
+export const updateUser = async (
+    userId: number,
+    userData: { email?: string; nickname?: string }
+): Promise<UserInfo> => {
+    return await put<UserInfo>(`/users/${userId}`, userData)
 }
 
 export {

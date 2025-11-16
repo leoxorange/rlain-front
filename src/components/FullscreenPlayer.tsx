@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { formatTime, artworkToDataUrl } from '../utils/kit'
 import { gsap } from 'gsap'
+import { VolumeControl } from './VolumeControl'
 
 interface FullscreenPlayerProps {
     isOpen: boolean
@@ -182,12 +183,6 @@ export const FullscreenPlayer = ({ isOpen, onClose }: FullscreenPlayerProps) => 
         const rect = e.currentTarget.getBoundingClientRect()
         const percent = (e.clientX - rect.left) / rect.width
         seek(percent * duration)
-    }
-
-    const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect()
-        const percent = (e.clientX - rect.left) / rect.width
-        changeVolume(percent)
     }
 
     const handleQueueItemClick = (index: number) => {
@@ -384,37 +379,12 @@ export const FullscreenPlayer = ({ isOpen, onClose }: FullscreenPlayerProps) => 
                 </div>
 
                 {/* Volume Control */}
-                <div className="flex items-center gap-2 sm:gap-3 w-full max-w-xs flex-shrink-0">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--muted)] flex-shrink-0">
-                        {volume === 0 ? (
-                            <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6" />
-                        ) : volume < 0.5 ? (
-                            <>
-                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                            </>
-                        ) : (
-                            <>
-                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                            </>
-                        )}
-                    </svg>
-                    <div
-                        className="flex-1 h-1 sm:h-1.5 rounded-full bg-[var(--border)] cursor-pointer group relative"
-                        onClick={handleVolumeChange}
-                    >
-                        <div
-                            className="h-full rounded-full bg-[var(--primary)] relative"
-                            style={{ width: `${volume * 100}%` }}
-                        >
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                    </div>
-                    <span className="text-xs sm:text-sm text-[var(--muted)] tabular-nums w-8 sm:w-10 text-right">
-                        {Math.round(volume * 100)}%
-                    </span>
-                </div>
+                <VolumeControl
+                    volume={volume}
+                    onVolumeChange={changeVolume}
+                    size="lg"
+                    className="w-full max-w-xs"
+                />
             </div>
 
             {/* Queue Panel */}

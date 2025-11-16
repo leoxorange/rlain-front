@@ -6,7 +6,7 @@ import { Input } from '../form/Input'
 export const ServerSettingsTab = () => {
     const { t } = useTranslation()
 
-    const [serverPort] = useState('8096')
+    const [serverPort] = useState('9876')
     const [enableLogging, setEnableLogging] = useState(true)
 
     return (

@@ -2,13 +2,16 @@ import { useApp } from '../context/AppContext'
 import { formatTime, artworkToDataUrl } from '../utils/kit'
 import { useState, useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
+import { VolumeControl } from './VolumeControl'
 
 interface NowPlayingBarProps {
     className?: string
+    isSidebarCollapsed?: boolean
 }
 
 export const NowPlayingBar = ({
-    className = ''
+    className = '',
+    isSidebarCollapsed = false
 }: NowPlayingBarProps) => {
     const {
         currentSong,
@@ -86,12 +89,6 @@ export const NowPlayingBar = ({
         seek(percent * duration)
     }
 
-    const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect()
-        const percent = (e.clientX - rect.left) / rect.width
-        changeVolume(percent)
-    }
-
     const handleQueueItemClick = (index: number) => {
         playQueueIndex(index)
         setIsQueueOpen(false)
@@ -105,7 +102,7 @@ export const NowPlayingBar = ({
     const artworkUrl = currentSong.artwork ? artworkToDataUrl(currentSong.artwork) : undefined
 
     return (
-        <div className={`fixed bottom-0 left-64 right-0 border-t border-[var(--border)] bg-[var(--card)] ${className}`}>
+        <div className={`fixed bottom-0 right-0 border-t border-[var(--border)] bg-[var(--card)] transition-all duration-300 ${isSidebarCollapsed ? 'left-0' : 'left-64'} ${className}`}>
             {/* Progress Bar */}
             <div
                 className="h-1 bg-[var(--border)] cursor-pointer hover:h-1.5 transition-all group"
@@ -360,30 +357,11 @@ export const NowPlayingBar = ({
                         </div>
 
                         {/* Volume Control */}
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--muted)] flex-shrink-0">
-                            {volume === 0 ? (
-                                <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6" />
-                            ) : volume < 0.5 ? (
-                                <>
-                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                                </>
-                            ) : (
-                                <>
-                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                                </>
-                            )}
-                        </svg>
-                        <div
-                            className="h-1 w-24 rounded-full bg-[var(--border)] cursor-pointer"
-                            onClick={handleVolumeChange}
-                        >
-                            <div
-                                className="h-full rounded-full bg-[var(--primary)]"
-                                style={{ width: `${volume * 100}%` }}
-                            />
-                        </div>
+                        <VolumeControl
+                            volume={volume}
+                            onVolumeChange={changeVolume}
+                            size="sm"
+                        />
                     </div>
                 </div>
             </div>

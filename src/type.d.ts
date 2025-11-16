@@ -76,3 +76,24 @@ interface UserInfo {
     nickname: string
     preferences?: UserPreferences
 }
+
+interface Playlist {
+    id: number
+    name: string
+    description?: string
+    user_id: number
+    is_public: boolean
+    song_count?: number
+    total_duration?: number
+    created: Date
+    updated: Date
+}
+
+interface PlaylistSong {
+    id: number
+    playlist_id: number
+    song_id: number
+    position: number
+    song?: Song
+    created: Date
+}

@@ -74,6 +74,17 @@
   }
 }
 
+@keyframes modalZoomIn {
+  from {
+    opacity: 0;
+    transform: translate(var(--origin-x), var(--origin-y)) scale(var(--origin-scale));
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
 .modal-backdrop {
   animation: modal-fade-in 200ms ease-out;
 }

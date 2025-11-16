@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { useAuth } from './AuthContext'
 import { get, getBlob, updateUserPreferences } from '../utils/net'
+import { saveUserInfo, getUserInfo } from '../utils/auth'
 
 export type PlayMode = 'list' | 'loop' | 'random'
 
@@ -49,6 +50,8 @@ interface AppContextType {
     changeVolume: (volume: number) => void
     playAlbum: (songs: Song[], album: Album) => void
     playSong: (song: Song, album?: Album) => void
+    addSongToQueue: (song: Song) => void
+    playSongNext: (song: Song) => void
     playNext: () => void
     playPrevious: () => void
     playQueueIndex: (index: number) => void
@@ -321,6 +324,26 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         setIsPlaying(true)
     }
 
+    const addSongToQueue = (song: Song) => {
+        // Add song to the end of the queue
+        setQueue(prevQueue => [...prevQueue, song])
+    }
+
+    const playSongNext = (song: Song) => {
+        // Insert song after current song in queue
+        if (currentQueueIndex === -1 || queue.length === 0) {
+            // No current song, just play it
+            playSong(song)
+        } else {
+            // Insert after current index
+            setQueue(prevQueue => {
+                const newQueue = [...prevQueue]
+                newQueue.splice(currentQueueIndex + 1, 0, song)
+                return newQueue
+            })
+        }
+    }
+
     const playNext = () => {
         if (currentQueueIndex < queue.length - 1) {
             const nextIndex = currentQueueIndex + 1
@@ -380,9 +403,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
             // Update local preferences state
             setPreferences((prev) => {
-                if (!prev) {
-                    // Initialize with defaults if no preferences exist
-                    return {
+                const updatedPreferences = !prev
+                    ? {
+                        // Initialize with defaults if no preferences exist
                         volume: prefs.volume ?? 0.75,
                         tc_enable: prefs.tc_enable ?? false,
                         tc_target: (prefs.tc_target as 'mp3' | 'aac' | 'opus' | 'flac') ?? 'mp3',
@@ -390,17 +413,26 @@ export const AppProvider = ({ children }: AppProviderProps) => {
                         theme: (prefs.theme as 'light' | 'dark' | 'system') ?? 'system',
                         notification: prefs.notification ?? false,
                     }
+                    : {
+                        ...prev,
+                        ...(prefs.volume !== undefined && { volume: prefs.volume }),
+                        ...(prefs.tc_enable !== undefined && { tc_enable: prefs.tc_enable }),
+                        ...(prefs.tc_target !== undefined && { tc_target: prefs.tc_target as 'mp3' | 'aac' | 'opus' | 'flac' }),
+                        ...(prefs.tc_bitrate !== undefined && { tc_bitrate: prefs.tc_bitrate as 128 | 256 | 320 }),
+                        ...(prefs.theme !== undefined && { theme: prefs.theme as 'light' | 'dark' | 'system' }),
+                        ...(prefs.notification !== undefined && { notification: prefs.notification }),
+                    }
+
+                // Update localStorage with new preferences
+                const storedUser = getUserInfo()
+                if (storedUser) {
+                    saveUserInfo({
+                        ...storedUser,
+                        preferences: updatedPreferences,
+                    })
                 }
 
-                return {
-                    ...prev,
-                    ...(prefs.volume !== undefined && { volume: prefs.volume }),
-                    ...(prefs.tc_enable !== undefined && { tc_enable: prefs.tc_enable }),
-                    ...(prefs.tc_target !== undefined && { tc_target: prefs.tc_target as 'mp3' | 'aac' | 'opus' | 'flac' }),
-                    ...(prefs.tc_bitrate !== undefined && { tc_bitrate: prefs.tc_bitrate as 128 | 256 | 320 }),
-                    ...(prefs.theme !== undefined && { theme: prefs.theme as 'light' | 'dark' | 'system' }),
-                    ...(prefs.notification !== undefined && { notification: prefs.notification }),
-                }
+                return updatedPreferences
             })
         } catch (error) {
             console.error('Failed to update user preferences:', error)
@@ -509,13 +541,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         libraries,
         currentLibraryId,
         isLoadingLibraries,
-        setCurrentLibraryId,
-        refreshLibraries,
-        addLibrary,
-        updateLibrary,
-        removeLibrary,
         preferences,
-        updatePreferences,
         currentSong,
         isPlaying,
         currentAlbum,
@@ -538,11 +564,19 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         changeVolume,
         playAlbum,
         playSong,
+        addSongToQueue,
+        playSongNext,
         playNext,
         playPrevious,
         playQueueIndex,
         clearQueue,
         togglePlayMode,
+        setCurrentLibraryId,
+        refreshLibraries,
+        addLibrary,
+        updateLibrary,
+        removeLibrary,
+        updatePreferences,
     }
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>
